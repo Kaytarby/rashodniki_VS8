@@ -1,0 +1,30 @@
+name: cors-check
+on:
+  push:
+    branches: [arena/3490c366-rashodniki-vs8]
+jobs:
+  cors:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preflight and POST with browser origin
+        env:
+          SUPA: https://lmbeuefieivvvfdxskln.supabase.co
+          ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmV1ZWZpZWl2dnZmZHhza2xuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MjA3MjEsImV4cCI6MjExMDM5NjcyMX0.-DMpCFEnhAAuhsoKtVrY4Bo0v2ulYcIbXABCnfND8s8
+          ORIGIN: https://rashodniki-jetta-vs8.vercel.app
+        run: |
+          set -e
+          curl -s -D pre.txt -o /dev/null -X OPTIONS "$SUPA/rest/v1/rpc/set_vote" \
+            -H "Origin: $ORIGIN" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: apikey,authorization,content-type"
+          echo "--- preflight ---"; grep -i -E "^(HTTP|access-control)" pre.txt || true
+          grep -qi "access-control-allow-origin" pre.txt
+          grep -qi "access-control-allow-headers" pre.txt
+          curl -s -D post.txt -o /dev/null -X POST "$SUPA/rest/v1/rpc/rating_summary" \
+            -H "Origin: $ORIGIN" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" \
+            -H "Content-Type: application/json" -d '{}'
+          echo "--- post ---"; grep -i -E "^(HTTP|access-control)" post.txt || true
+          grep -qi "access-control-allow-origin" post.txt
+          curl -s -o live.html -w "live_http=%{http_code}\n" https://rashodniki-jetta-vs8.vercel.app/
+          grep -c "Синхронизировано\|Подключение к серверу" live.html || true
+          grep -c "rashodniki-jetta-vs8\|jv8.client.v1" live.html || true
