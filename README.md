@@ -1,0 +1,1 @@
+# rashodniki_VS8
