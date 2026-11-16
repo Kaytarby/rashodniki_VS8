@@ -1,0 +1,59 @@
+name: smoke
+on:
+  push:
+    branches: [arena/3490c366-rashodniki-vs8]
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Page
+        run: |
+          set -e
+          code=$(curl -s -o /tmp/page.html -w "%{http_code}" -L https://rashodniki-jetta-vs8.vercel.app/)
+          echo "HTTP=$code"
+          grep -c "jv8.client.v1" /tmp/page.html || true
+          grep -o "Расходники" /tmp/page.html | head -1
+          test "$code" = "200"
+      - name: Asset
+        run: |
+          set -e
+          code=$(curl -s -o /tmp/img.jpg -w "%{http_code}" -L https://rashodniki-jetta-vs8.vercel.app/assets/hero-parts.jpg)
+          echo "ASSET_HTTP=$code SIZE=$(stat -c%s /tmp/img.jpg)"
+          test "$code" = "200"
+      - name: Supabase read
+        env:
+          SUPA: https://lmbeuefieivvvfdxskln.supabase.co
+          ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmV1ZWZpZWl2dnZmZHhza2xuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MjA3MjEsImV4cCI6MjExMDM5NjcyMX0.-DMpCFEnhAAuhsoKtVrY4Bo0v2ulYcIbXABCnfND8s8
+        run: |
+          set -e
+          for fn in list_parts rating_summary get_my_votes; do
+            body='{}'
+            if [ "$fn" = "get_my_votes" ]; then body='{"p_client":"gh-smoke-client-001"}'; fi
+            code=$(curl -s -o /tmp/$fn.json -w "%{http_code}" -X POST "$SUPA/rest/v1/rpc/$fn" \
+              -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" -d "$body")
+            echo "$fn -> $code $(head -c 120 /tmp/$fn.json)"
+            test "$code" = "200"
+          done
+      - name: Supabase write and cleanup
+        env:
+          SUPA: https://lmbeuefieivvvfdxskln.supabase.co
+          ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmV1ZWZpZWl2dnZmZHhza2xuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MjA3MjEsImV4cCI6MjExMDM5NjcyMX0.-DMpCFEnhAAuhsoKtVrY4Bo0v2ulYcIbXABCnfND8s8
+        run: |
+          set -e
+          id=$(curl -s -X POST "$SUPA/rest/v1/rpc/add_part" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" \
+            -d '{"p_client":"gh-smoke-client-001","p_name":"Smoke test part","p_brand":"CI","p_article":"S-1","p_price":100,"p_category":"filters","p_group":"oil-filter","p_note":"","p_link":"https://example.com"}' | tr -d '"')
+          echo "added=$id"
+          test -n "$id"
+          v=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$SUPA/rest/v1/rpc/set_vote" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" \
+            -d "{\"p_item_key\":\"u:$id\",\"p_client\":\"gh-smoke-client-001\",\"p_stars\":5}")
+          echo "vote_http=$v"
+          curl -s -o /dev/null -w "reset_http=%{http_code}\n" -X POST "$SUPA/rest/v1/rpc/reset_my_data" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" \
+            -d '{"p_client":"gh-smoke-client-001"}'
+          left=$(curl -s -X POST "$SUPA/rest/v1/rpc/list_parts" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" -d '{}' | grep -c "Smoke test part" || true)
+          echo "leftover=$left"
+          test "$left" = "0"
