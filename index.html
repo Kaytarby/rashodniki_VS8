@@ -326,6 +326,8 @@ html[data-theme="dark"] .tag-inline{background:#242426}
 .badge-pick{background:rgba(255,159,10,.13);color:#b26b00}
 html[data-theme="dark"] .badge-pick{background:rgba(255,159,10,.16);color:#ffb340}
 .badge-mine{background:var(--accent-soft);color:var(--accent)}
+.badge-community{background:rgba(90,200,250,.16);color:#0071a4}
+html[data-theme="dark"] .badge-community{background:rgba(90,200,250,.16);color:#7ad4ff}
 .badge-orig{background:rgba(48,209,88,.1);color:#2b7a45;font-weight:500}
 html[data-theme="dark"] .badge-orig{background:rgba(48,209,88,.14);color:#57c97a}
 .badge-compare{background:var(--bg-sunken);color:var(--text-2);font-weight:500}
@@ -457,6 +459,16 @@ html[data-theme="dark"] mark{background:rgba(255,214,10,.3);color:#fff}
 .footer-title{font-size:14px;font-weight:600;margin-bottom:10px}
 .footer-text{font-size:12.5px;line-height:1.6;color:var(--text-3);max-width:60ch}
 .footer-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.sync-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--text-3)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-3);flex:none}
+.sync-dot.is-online{background:#30d158;box-shadow:0 0 0 3px rgba(48,209,88,.16)}
+.sync-dot.is-syncing{background:var(--accent);animation:pulse 1.6s infinite}
+.sync-dot.is-local{background:#ff9f0a;box-shadow:0 0 0 3px rgba(255,159,10,.16)}
+.sync-dot.is-stale{background:#ff453a;box-shadow:0 0 0 3px rgba(255,69,58,.14)}
+.sync-refresh{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;color:var(--text-3);transition:background-color .15s,color .15s}
+.sync-refresh:hover{background:var(--row-hover);color:var(--text)}
+.sync-refresh.is-spinning svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .footer-note{margin-top:26px;padding-top:18px;border-top:1px solid var(--hairline);display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--text-3)}
 .footer-note .links{display:flex;gap:16px}
 .footer-note a{color:var(--text-3)}
@@ -673,7 +685,7 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
         </div>
         <div>
           <div class="stat-value stat-live"><span class="pulse" aria-hidden="true"></span><span id="statRated">0</span></div>
-          <div class="stat-label">ваших оценок</div>
+          <div class="stat-label" id="statRatedLabel">оценок сообщества</div>
         </div>
       </div>
     </div>
@@ -742,15 +754,22 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
         </div>
       </div>
       <div>
-        <h3 class="footer-title">Ваши данные</h3>
-        <p class="footer-text">
-          Оценки и добавленные позиции сохраняются только в этом браузере (localStorage) —
-          без аккаунтов и серверов. Можно выгрузить копию в JSON и перенести на другое устройство.
+        <h3 class="footer-title">Данные и синхронизация</h3>
+        <p class="footer-text" id="dataNote">
+          Оценки и добавленные позиции хранятся в общей базе и сразу видны всем посетителям.
+          Аккаунт не нужен: ваш анонимный идентификатор живёт в этом браузере.
         </p>
+        <div class="sync-row">
+          <span class="sync-dot is-syncing" id="syncDot" aria-hidden="true"></span>
+          <span class="sync-text" id="syncText" role="status" aria-live="polite">Подключение к серверу…</span>
+          <button class="sync-refresh" id="syncBtn" type="button" title="Обновить данные" aria-label="Обновить данные с сервера">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+          </button>
+        </div>
         <div class="footer-links">
           <button class="btn btn-ghost" id="exportBtn" type="button">Выгрузить JSON</button>
-          <button class="btn btn-ghost btn-ghost-danger" id="resetBtn" type="button">Сбросить данные</button>
-          <label class="btn btn-ghost" style="cursor:pointer">
+          <button class="btn btn-ghost btn-ghost-danger" id="resetBtn" type="button">Сбросить мои данные</button>
+          <label class="btn btn-ghost" id="importLabel" style="cursor:pointer">
             Загрузить JSON
             <input type="file" id="importInput" accept="application/json,.json" class="sr-only">
           </label>
@@ -1165,7 +1184,20 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
   /* =========================================================
      2. ХРАНИЛИЩЕ
      ========================================================= */
-  var KEYS = { ratings: 'jv8.ratings.v1', user: 'jv8.useritems.v1', theme: 'jv8.theme.v1', voteSeen: 'jv8.mine.v1' };
+  var CLOUD = {
+    url: 'https://lmbeuefieivvvfdxskln.supabase.co',
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmV1ZWZpZWl2dnZmZHhza2xuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MjA3MjEsImV4cCI6MjExMDM5NjcyMX0.-DMpCFEnhAAuhsoKtVrY4Bo0v2ulYcIbXABCnfND8s8',
+    timeout: 9000
+  };
+  var KEYS = {
+    ratings: 'jv8.ratings.v1',
+    user: 'jv8.useritems.v1',
+    theme: 'jv8.theme.v1',
+    voteSeen: 'jv8.mine.v1',
+    client: 'jv8.client.v1',
+    myParts: 'jv8.myparts.v1',
+    cache: 'jv8.cache.v1'
+  };
   var memory = {};
   function read(key, fallback) {
     try {
@@ -1182,10 +1214,37 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
     try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* приватный режим */ }
   }
 
+  /* Анонимный идентификатор устройства — «ключ» к своим позициям и оценкам */
+  function getClientId() {
+    var id = null;
+    try { id = window.localStorage.getItem(KEYS.client); } catch (e) { id = memory[KEYS.client]; }
+    if (!id || String(id).length < 8) {
+      id = (window.crypto && window.crypto.randomUUID)
+        ? window.crypto.randomUUID()
+        : 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+      try { window.localStorage.setItem(KEYS.client, id); } catch (e) { memory[KEYS.client] = id; }
+    }
+    return String(id);
+  }
+  var clientId = getClientId();
+
+  var cloud = {
+    online: false,
+    syncing: false,
+    lastSync: 0,
+    parts: [],
+    myPartIds: read(KEYS.myParts, [])
+  };
+  if (!Array.isArray(cloud.myPartIds)) cloud.myPartIds = [];
+
+  var cache = read(KEYS.cache, null);
+  if (!cache || typeof cache !== 'object') cache = null;
+
   var state = {
-    ratings: read(KEYS.ratings, {}),   // key -> {c: кол-во, s: сумма, mine: 1..5}
-    user: read(KEYS.user, []),         // пользовательские позиции
-    mine: read(KEYS.voteSeen, {}),     // key -> моя оценка
+    mode: 'local',                                                        // 'cloud' | 'local'
+    ratings: (cache && cache.ratings) || read(KEYS.ratings, {}),           // key -> {c, s, a}
+    user: (cache && Array.isArray(cache.user)) ? cache.user : read(KEYS.user, []),
+    mine: (cache && cache.mine) || read(KEYS.voteSeen, {}),                // key -> моя оценка
     query: '',
     sort: 'default',
     onlyMine: false,
@@ -1197,11 +1256,115 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
   if (!state.ratings || typeof state.ratings !== 'object') state.ratings = {};
   if (!state.mine || typeof state.mine !== 'object') state.mine = {};
 
+  function isMyPart(id) { return cloud.myPartIds.indexOf(String(id)) !== -1; }
+  function rememberMyPart(id) {
+    id = String(id);
+    if (isMyPart(id)) return;
+    cloud.myPartIds.push(id);
+    write(KEYS.myParts, cloud.myPartIds);
+  }
+
   function saveState() {
     write(KEYS.ratings, state.ratings);
     write(KEYS.user, state.user);
     write(KEYS.voteSeen, state.mine);
+    write(KEYS.cache, { user: state.user, ratings: state.ratings, mine: state.mine, at: Date.now() });
   }
+
+  /* =========================================================
+     2.1 СЕТЬ: Supabase RPC поверх PostgREST
+     ========================================================= */
+  function rpc(fn, args) {
+    var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, CLOUD.timeout) : null;
+    return fetch(CLOUD.url + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-store',
+      headers: {
+        'apikey': CLOUD.key,
+        'Authorization': 'Bearer ' + CLOUD.key,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(args || {}),
+      signal: controller ? controller.signal : undefined
+    }).then(function (res) {
+      if (timer) clearTimeout(timer);
+      if (!res.ok) {
+        return res.text().then(function (text) {
+          var msg = '';
+          try { msg = (JSON.parse(text) || {}).message || ''; } catch (e) { msg = text; }
+          var err = new Error(msg || ('HTTP ' + res.status));
+          err.status = res.status;
+          err.fn = fn;
+          throw err;
+        });
+      }
+      if (res.status === 204) return null;
+      return res.text().then(function (t) { return t ? JSON.parse(t) : null; });
+    }).catch(function (err) {
+      if (timer) clearTimeout(timer);
+      throw err;
+    });
+  }
+
+  function normalizePart(row) {
+    return {
+      id: String(row.id),
+      n: row.name,
+      b: row.brand,
+      a: row.article || '',
+      p: (typeof row.price === 'number') ? row.price : null,
+      catId: row.category_id,
+      grpId: row.group_id,
+      note: row.note || '',
+      l: row.link ? { site: row.link } : {},
+      createdAt: row.created_at || '',
+      updatedAt: row.updated_at || '',
+      mine: isMyPart(row.id)
+    };
+  }
+
+  function applyCloudSnapshot(parts, summary, myVotes) {
+    cloud.parts = parts;
+    state.user = parts.map(normalizePart);
+    var ratings = {};
+    summary.forEach(function (row) {
+      var votes = Number(row.votes) || 0;
+      var avg = Number(row.avg_stars) || 0;
+      if (votes > 0) ratings[row.item_key] = { c: votes, a: avg, s: Math.round(avg * votes) };
+    });
+    state.ratings = ratings;
+    var mine = {};
+    myVotes.forEach(function (row) { mine[row.item_key] = row.stars; });
+    state.mine = mine;
+    cloud.lastSync = Date.now();
+    cloud.online = true;
+    state.mode = 'cloud';
+  }
+
+  function fetchCloud() {
+    return Promise.all([
+      rpc('list_parts', {}),
+      rpc('rating_summary', {}),
+      rpc('get_my_votes', { p_client: clientId })
+    ]).then(function (res) {
+      var parts = Array.isArray(res[0]) ? res[0] : [];
+      var summary = Array.isArray(res[1]) ? res[1] : [];
+      var myVotes = Array.isArray(res[2]) ? res[2] : [];
+      applyCloudSnapshot(parts, summary, myVotes);
+      // подчищаем локальный список своих позиций
+      cloud.myPartIds = cloud.myPartIds.filter(function (id) {
+        return parts.some(function (p) { return String(p.id) === String(id); });
+      });
+      write(KEYS.myParts, cloud.myPartIds);
+      saveState();
+      return true;
+    });
+  }
+
+  function currentRatings() { return state.ratings; }
 
   /* =========================================================
      3. УТИЛИТЫ
@@ -1264,7 +1427,10 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
         catId: u.catId, grpId: u.grpId,
         b: u.b, a: u.a || '', n: u.n, p: (typeof u.p === 'number' ? u.p : null),
         l: u.l || {}, note: u.note || '', pick: false, tag: '',
-        user: true, userData: u
+        user: u.mine !== false,
+        community: u.mine === false,
+        createdAt: u.createdAt || '',
+        userData: u
       });
     });
   }
@@ -1277,8 +1443,10 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
 
   function ratingOf(key) {
     var r = state.ratings[key];
-    if (!r || !r.c) return { avg: 0, count: 0, mine: state.mine[key] || 0 };
-    return { avg: r.s / r.c, count: r.c, mine: state.mine[key] || 0 };
+    var mine = state.mine[key] || 0;
+    if (!r || !r.c) return { avg: 0, count: 0, mine: mine };
+    var avg = (typeof r.a === 'number' && r.a > 0) ? r.a : (r.s || 0) / r.c;
+    return { avg: avg, count: r.c, mine: mine };
   }
   function totalVotes() {
     return Object.keys(state.ratings).reduce(function (sum, k) { return sum + (state.ratings[k].c || 0); }, 0);
@@ -1321,8 +1489,8 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
     $('#statCats').textContent = CATALOG.reduce(function (n, c) { return n + c.groups.length; }, 0);
     $('#statRated').textContent = totalVotes();
     $('#year').textContent = new Date().getFullYear();
-    var mine = state.user.length;
-    $('#mineCount').textContent = mine ? String(mine) : '0';
+    var mineCount = state.user.filter(function (u) { return u.mine !== false; }).length;
+    $('#mineCount').textContent = String(mineCount);
   }
 
   /* =========================================================
@@ -1433,6 +1601,7 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
     if (it.pick) badges += '<span class="badge badge-pick">' + ICON.star.replace('<svg ', '<svg style="width:9px;height:9px;fill:currentColor" ') + 'Выбор редакции</span>';
     else if (isOeBrand(it.b)) badges += '<span class="badge badge-orig">Оригинал</span>';
     if (it.user) badges += '<span class="badge badge-mine">Ваша позиция</span>';
+    else if (it.community) badges += '<span class="badge badge-community">Сообщество</span>';
     if (it.tag) badges += '<span class="badge badge-compare">' + esc(it.tag) + '</span>';
 
     var art = it.a
@@ -1618,15 +1787,74 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
     if (!it) return;
     var prev = state.mine[key] || 0;
     var r = state.ratings[key] || { c: 0, s: 0 };
-    if (prev) { r.s -= prev; r.c = Math.max(0, r.c - 1); }
-    r.s += value; r.c += 1;
-    state.ratings[key] = r;
+    var count = r.c || 0;
+    var sum = (typeof r.a === 'number' && r.a > 0) ? r.a * count : (r.s || 0);
+    if (prev) { sum -= prev; } else { count += 1; }
+    sum += value;
+    state.ratings[key] = { c: count, s: sum, a: count ? sum / count : 0 };
     state.mine[key] = value;
     write(KEYS.ratings, state.ratings);
     write(KEYS.voteSeen, state.mine);
     updateRatingInPlace(key);
-    toast(prev && prev !== value ? 'Оценка изменена: ' + value + ' из 5' : 'Спасибо! Ваша оценка: ' + value + ' из 5');
     $('#statRated').textContent = totalVotes();
+
+    if (state.mode === 'cloud') {
+      rpc('set_vote', { p_item_key: key, p_client: clientId, p_stars: value })
+        .then(function () {
+          toast(prev ? 'Оценка обновлена: ' + value + ' из 5' : 'Спасибо! Ваша оценка: ' + value + ' из 5');
+          setSyncState('online');
+          return refreshSummary();
+        })
+        .catch(function (err) {
+          failNetwork(err, 'Оценка сохранена только на этом устройстве');
+        });
+    } else {
+      toast(prev && prev !== value ? 'Оценка изменена: ' + value + ' из 5' : 'Спасибо! Ваша оценка: ' + value + ' из 5');
+    }
+  }
+
+  /* Обновление оценок с сервера без перерисовки всей страницы */
+  var summaryTimer = null;
+  function refreshSummary() {
+    clearTimeout(summaryTimer);
+    return new Promise(function (resolve) {
+      summaryTimer = setTimeout(function () {
+        rpc('rating_summary', {}).then(function (rows) {
+          var ratings = {};
+          (Array.isArray(rows) ? rows : []).forEach(function (row) {
+            var votes = Number(row.votes) || 0;
+            var avg = Number(row.avg_stars) || 0;
+            if (votes > 0) ratings[row.item_key] = { c: votes, a: avg, s: Math.round(avg * votes) };
+          });
+          state.ratings = ratings;
+          saveState();
+          Object.keys(byKey).forEach(function (k) {
+            if (document.querySelector('.item[data-key="' + cssEscape(k) + '"]')) updateRatingInPlaceQuiet(k);
+          });
+          $('#statRated').textContent = totalVotes();
+          resolve();
+        }).catch(function (err) {
+          setSyncState('stale');
+          resolve();
+        });
+      }, 600);
+    });
+  }
+
+  function updateRatingInPlaceQuiet(key) {
+    var row = document.querySelector('.item[data-key="' + cssEscape(key) + '"]');
+    if (!row) return;
+    var r = ratingOf(key);
+    var shown = r.mine || Math.round(r.avg);
+    var stop = Math.min(5, Math.max(1, shown || 1));
+    $$('.star', row).forEach(function (btn) {
+      var v = Number(btn.getAttribute('data-vote'));
+      btn.classList.toggle('is-on', v <= shown);
+      btn.setAttribute('aria-checked', String(r.mine === v));
+      btn.setAttribute('tabindex', v === stop ? '0' : '-1');
+    });
+    var meta = $('.rate-meta', row);
+    if (meta) meta.innerHTML = rateMetaHtml(byKey[key]);
   }
 
   function updateRatingInPlace(key) {
@@ -1837,13 +2065,28 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
 
   function removeUserItem(id) {
     var key = 'u:' + id;
-    state.user = state.user.filter(function (u) { return u.id !== id; });
-    delete state.ratings[key];
-    delete state.mine[key];
-    saveState();
-    buildIndex(); reindexMap(); renderCatalog(); renderSubnav();
-    toast('Позиция удалена');
-    closeModal();
+    var finish = function () {
+      state.user = state.user.filter(function (u) { return String(u.id) !== String(id); });
+      delete state.ratings[key];
+      delete state.mine[key];
+      cloud.myPartIds = cloud.myPartIds.filter(function (x) { return String(x) !== String(id); });
+      write(KEYS.myParts, cloud.myPartIds);
+      saveState();
+      rebuildView();
+      toast('Позиция удалена');
+      closeModal();
+    };
+    if (state.mode === 'cloud') {
+      toast('Удаляем позицию…');
+      rpc('delete_part', { p_id: String(id), p_client: clientId })
+        .then(finish)
+        .catch(function (err) {
+          if (err && /not_found_or_forbidden/.test(String(err.message))) { finish(); return; }
+          failNetwork(err, 'Не удалось удалить на сервере');
+        });
+      return;
+    }
+    finish();
   }
 
   $('#deleteBtn').addEventListener('click', function () {
@@ -1890,53 +2133,123 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
       return;
     }
 
-    var parts = groupVal.split('|');
-    var catId = parts[0], grpId = parts[1];
+    var gparts = groupVal.split('|');
+    var payload = {
+      n: name, b: brand, a: art,
+      p: (price != null && !isNaN(price)) ? price : null,
+      catId: gparts[0], grpId: gparts[1],
+      note: note, link: cleanLink
+    };
 
-    if (state.editing) {
-      var target = state.user.filter(function (u) { return u.id === state.editing; })[0];
-      if (!target) return;
-      target.n = name; target.b = brand; target.a = art;
-      target.p = (price != null && !isNaN(price)) ? price : null;
-      target.catId = catId; target.grpId = grpId;
-      target.note = note;
-      target.l = cleanLink ? { site: cleanLink } : {};
-      if (state.formRating) setMine('u:' + target.id, state.formRating);
-      saveState(); rebuildView();
-      closeModal();
-      toast('Изменения сохранены');
-    } else {
-      var id = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      var item = {
-        id: id, n: name, b: brand, a: art,
-        p: (price != null && !isNaN(price)) ? price : null,
-        catId: catId, grpId: grpId, note: note,
-        l: cleanLink ? { site: cleanLink } : {},
-        createdAt: new Date().toISOString()
-      };
-      state.user.push(item);
-      if (state.formRating) setMine('u:' + id, state.formRating);
-      saveState(); rebuildView();
-      closeModal();
-      toast('Позиция добавлена в «' + sectionTitle(catId) + '»');
-      setTimeout(function () {
-        var el = document.querySelector('.item[data-key="' + cssEscape('u:' + id) + '"]');
-        if (el) {
-          el.style.transition = 'background-color .8s';
-          el.style.backgroundColor = 'var(--accent-soft)';
-          if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setTimeout(function () { el.style.backgroundColor = ''; }, 1400);
-        }
-      }, 120);
-    }
+    if (state.mode === 'cloud') saveToCloud(payload, state.editing);
+    else saveLocally(payload, state.editing);
   });
+
+  function saveBusy(on) {
+    var btn = $('#saveBtn');
+    if (!btn) return;
+    btn.disabled = !!on;
+    btn.style.opacity = on ? '.65' : '';
+    btn.textContent = on ? 'Сохраняем…' : (state.editing ? 'Сохранить изменения' : 'Сохранить');
+  }
+
+  function saveToCloud(payload, editingId) {
+    saveBusy(true);
+    var req;
+    var args = {
+      p_name: payload.n,
+      p_brand: payload.b,
+      p_article: payload.a,
+      p_price: payload.p,
+      p_category: payload.catId,
+      p_group: payload.grpId,
+      p_note: payload.note,
+      p_link: payload.link || null
+    };
+    if (editingId) {
+      args.p_id = String(editingId);
+      args.p_client = clientId;
+      req = rpc('update_part', args).then(function () { return { id: String(editingId), updated: true }; });
+    } else {
+      args.p_client = clientId;
+      req = rpc('add_part', args).then(function (newId) {
+        if (!newId) throw new Error('empty_id');
+        return { id: String(newId), updated: false };
+      });
+    }
+
+    req.then(function (res) {
+      var key = 'u:' + res.id;
+      if (!res.updated) rememberMyPart(res.id);
+      var voteReq = Promise.resolve();
+      if (state.formRating) {
+        setMine(key, state.formRating);
+        voteReq = rpc('set_vote', { p_item_key: key, p_client: clientId, p_stars: state.formRating });
+      }
+      return voteReq.then(function () {
+        return fetchCloud();
+      }).then(function () {
+        rebuildView();
+        saveBusy(false);
+        closeModal();
+        toast(res.updated ? 'Изменения сохранены — их видят все посетители' : 'Позиция добавлена в «' + sectionTitle(payload.catId) + '»');
+        highlightItem(key);
+      });
+    }).catch(function (err) {
+      saveBusy(false);
+      var msg = String((err && err.message) || '');
+      if (/rate_limited/.test(msg)) toast('Слишком много добавлений за час — попробуйте позже');
+      else if (/invalid_/.test(msg)) toast('Сервер отклонил данные: проверьте название, артикул и ссылку');
+      else failNetwork(err, 'Не удалось сохранить на сервере');
+    });
+  }
+
+  function saveLocally(payload, editingId) {
+    if (editingId) {
+      var target = state.user.filter(function (u) { return String(u.id) === String(editingId); })[0];
+      if (!target) return;
+      target.n = payload.n; target.b = payload.b; target.a = payload.a;
+      target.p = payload.p; target.catId = payload.catId; target.grpId = payload.grpId;
+      target.note = payload.note;
+      target.l = payload.link ? { site: payload.link } : {};
+      target.mine = true;
+      if (state.formRating) setMine('u:' + target.id, state.formRating);
+      saveState(); rebuildView(); closeModal();
+      toast('Изменения сохранены');
+      return;
+    }
+    var id = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    state.user.push({
+      id: id, n: payload.n, b: payload.b, a: payload.a, p: payload.p,
+      catId: payload.catId, grpId: payload.grpId, note: payload.note,
+      l: payload.link ? { site: payload.link } : {},
+      createdAt: new Date().toISOString(), mine: true
+    });
+    if (state.formRating) setMine('u:' + id, state.formRating);
+    saveState(); rebuildView(); closeModal();
+    toast('Позиция добавлена в «' + sectionTitle(payload.catId) + '»');
+    highlightItem('u:' + id);
+  }
+
+  function highlightItem(key) {
+    setTimeout(function () {
+      var el = document.querySelector('.item[data-key="' + cssEscape(key) + '"]');
+      if (!el) return;
+      el.style.transition = 'background-color .8s';
+      el.style.backgroundColor = 'var(--accent-soft)';
+      if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(function () { el.style.backgroundColor = ''; }, 1400);
+    }, 140);
+  }
 
   function setMine(key, value) {
     var prev = state.mine[key] || 0;
     var r = state.ratings[key] || { c: 0, s: 0 };
-    if (prev) { r.s -= prev; r.c = Math.max(0, r.c - 1); }
-    r.s += value; r.c += 1;
-    state.ratings[key] = r;
+    var count = r.c || 0;
+    var sum = (typeof r.a === 'number' && r.a > 0) ? r.a * count : (r.s || 0);
+    if (prev) { sum -= prev; } else { count += 1; }
+    sum += value;
+    state.ratings[key] = { c: count, s: sum, a: count ? sum / count : 0 };
     state.mine[key] = value;
     write(KEYS.ratings, state.ratings);
     write(KEYS.voteSeen, state.mine);
@@ -2135,11 +2448,12 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
   $('#exportBtn').addEventListener('click', function () {
     var payload = {
       app: 'rashodniki-jetta-vs8',
-      version: 1,
+      version: 2,
+      mode: state.mode,
       exportedAt: new Date().toISOString(),
       ratings: state.ratings,
       mine: state.mine,
-      items: state.user
+      items: state.user.filter(function (u) { return u.mine !== false; })
     };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -2154,6 +2468,11 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
   });
 
   $('#importInput').addEventListener('change', function (e) {
+    if (state.mode === 'cloud') {
+      toast('В онлайн-режиме импорт не нужен — данные уже в общей базе');
+      e.target.value = '';
+      return;
+    }
     var file = e.target.files && e.target.files[0];
     if (!file) return;
     var reader = new FileReader();
@@ -2174,7 +2493,7 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
               return c.id === u.catId && c.groups.some(function (g) { return g.id === u.grpId; });
             });
             if (!known) return;
-            if (state.user.some(function (x) { return x.id === u.id; })) return;
+            if (state.user.some(function (x) { return String(x.id) === String(u.id); })) return;
             var price = Number(u.p);
             state.user.push({
               id: String(u.id), n: String(u.n), b: String(u.b), a: String(u.a || ''),
@@ -2185,7 +2504,8 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
                 site: safeUrl(u.l.site), oz: safeUrl(u.l.oz),
                 wb: safeUrl(u.l.wb), oc: safeUrl(u.l.oc)
               } : {},
-              createdAt: u.createdAt || new Date().toISOString()
+              createdAt: u.createdAt || new Date().toISOString(),
+              mine: true
             });
           });
         }
@@ -2200,21 +2520,113 @@ html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255
   });
 
   $('#resetBtn').addEventListener('click', function () {
-    if (!window.confirm('Удалить все ваши оценки и добавленные позиции? Действие необратимо.')) return;
+    var question = state.mode === 'cloud'
+      ? 'Удалить ваши оценки и добавленные позиции из общей базы? Действие необратимо.'
+      : 'Удалить все ваши оценки и добавленные позиции? Действие необратимо.';
+    if (!window.confirm(question)) return;
+
+    if (state.mode === 'cloud') {
+      toast('Удаляем ваши данные…');
+      rpc('reset_my_data', { p_client: clientId }).then(function () {
+        cloud.myPartIds = [];
+        write(KEYS.myParts, []);
+        state.ratings = {}; state.mine = {}; state.user = [];
+        return fetchCloud();
+      }).then(function () {
+        rebuildView();
+        setSyncState('online');
+        toast('Ваши данные удалены из общей базы');
+      }).catch(function (err) {
+        failNetwork(err, 'Не удалось удалить данные на сервере');
+      });
+      return;
+    }
+
     state.ratings = {}; state.mine = {}; state.user = [];
     saveState(); rebuildView();
     toast('Данные сброшены');
   });
 
   /* =========================================================
-     19. СТАРТ
+     19. СИНХРОНИЗАЦИЯ С СЕРВЕРОМ
      ========================================================= */
+  function setSyncState(kind) {
+    var dot = $('#syncDot');
+    var text = $('#syncText');
+    var note = $('#dataNote');
+    var label = $('#statRatedLabel');
+    if (dot) dot.className = 'sync-dot is-' + kind;
+    var messages = {
+      online: 'Синхронизировано · данные видны всем',
+      syncing: 'Обновляем данные…',
+      local: 'Локальный режим · только это устройство',
+      stale: 'Нет связи · показаны сохранённые данные'
+    };
+    if (text) text.textContent = messages[kind] || '';
+    if (label) label.textContent = kind === 'local' ? 'ваших оценок' : 'оценок сообщества';
+    if (note) {
+      if (kind === 'online') {
+        note.textContent = 'Оценки и добавленные позиции хранятся в общей базе и сразу видны всем посетителям. Аккаунт не нужен: ваш анонимный идентификатор живёт в этом браузере.';
+      } else if (kind === 'local') {
+        note.textContent = 'Сервер недоступен, поэтому оценки и позиции сохраняются только в этом браузере (localStorage). Копию можно выгрузить в JSON.';
+      }
+    }
+    var importLabel = $('#importLabel');
+    if (importLabel) importLabel.style.opacity = state.mode === 'cloud' ? '.45' : '';
+  }
+
+  function failNetwork(err, message) {
+    if (window.console && console.warn) console.warn('[sync]', err);
+    setSyncState(state.mode === 'cloud' ? 'stale' : 'local');
+    if (message) toast(message);
+  }
+
+  var localNoticeShown = false;
+  function syncNow(opts) {
+    opts = opts || {};
+    var btn = $('#syncBtn');
+    if (btn) btn.classList.add('is-spinning');
+    setSyncState('syncing');
+    return fetchCloud().then(function () {
+      if (btn) btn.classList.remove('is-spinning');
+      setSyncState('online');
+      rebuildView();
+      if (!opts.silent && !opts.initial) toast('Данные обновлены');
+      return true;
+    }).catch(function (err) {
+      if (btn) btn.classList.remove('is-spinning');
+      if (window.console && console.warn) console.warn('[sync]', err);
+      if (state.mode === 'cloud') {
+        setSyncState('stale');
+        if (!opts.silent && !opts.initial) toast('Нет связи с сервером — показаны сохранённые данные');
+      } else {
+        setSyncState('local');
+        if (!localNoticeShown && !opts.silent) {
+          localNoticeShown = true;
+          toast('Офлайн-режим: данные сохраняются в этом браузере');
+        }
+      }
+      return false;
+    });
+  }
+
+  $('#syncBtn').addEventListener('click', function () { syncNow({}); });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    if (!navigator.onLine) return;
+    if (Date.now() - cloud.lastSync < 60000) return;
+    syncNow({ silent: true });
+  });
+
   buildIndex();
   reindexMap();
   renderSubnav();
   renderStats();
   renderCatalog();
   initScrollspy();
+  setSyncState('syncing');
+  syncNow({ initial: true, silent: true });
 
   // активный раздел по умолчанию — первый
   var firstChip = $('#subnavInner .chip');
