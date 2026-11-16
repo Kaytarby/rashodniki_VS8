@@ -200,6 +200,17 @@ kbd{
   font:inherit;font-size:11px;padding:2px 6px;border-radius:5px;
   border:1px solid var(--hairline-strong);background:var(--bg-elev);color:var(--text-2);
 }
+.hero-media{
+  position:relative;margin:clamp(26px,4vw,42px) 0 0;
+  border-radius:var(--radius-xl);overflow:hidden;
+  border:1px solid var(--hairline);background:#ded9d2;
+  box-shadow:var(--shadow-2);aspect-ratio:2.5/1;
+  animation:heroIn .9s var(--ease) both;animation-delay:.08s;
+}
+@keyframes heroIn{from{opacity:0;transform:translateY(14px) scale(.995)}to{opacity:1;transform:none}}
+.hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 52%}
+html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255,255,.14)}
+@media(max-width:700px){.hero-media{aspect-ratio:16/9}}
 .hero-stats{
   display:flex;flex-wrap:wrap;gap:clamp(24px,5vw,56px);
   margin-top:clamp(32px,5vw,52px);padding-top:24px;border-top:1px solid var(--hairline);
@@ -299,7 +310,7 @@ html[data-theme="dark"] .tag-inline{background:#242426}
   overflow-wrap:break-word;
 }
 .brand-name.is-oem{color:var(--text)}
-.brand-inline{display:none;font-size:11px;font-weight:600;letter-spacing:.045em;text-transform:uppercase;color:var(--text-3);margin-bottom:4px}
+
 .col-main{min-width:0}
 .item-title{font-size:14.5px;font-weight:500;letter-spacing:-.012em;line-height:1.35;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
 .item-title .name{min-width:0}
@@ -532,15 +543,15 @@ html[data-theme="dark"] .toast svg{color:#28a745}
 @media(max-width:820px){
   .item{
     grid-template-columns:minmax(0,1fr) auto;
-    grid-template-areas:"main rate" "links links";
-    align-items:start;gap:8px 12px;padding:14px 16px;
+    grid-template-areas:"brand rate" "main main" "links links";
+    align-items:start;gap:4px 12px;padding:14px 16px;
   }
-  .col-brand{display:none}
-  .brand-inline{display:block}
+  .col-brand{grid-area:brand;min-width:0}
+  .col-brand .brand-name{font-size:11px;font-weight:600;letter-spacing:.045em;text-transform:uppercase;color:var(--text-3)}
   .col-main{grid-area:main}
-  .col-links{grid-area:links;justify-content:flex-start;margin-top:2px}
+  .col-links{grid-area:links;justify-content:flex-start;margin-top:4px}
   .col-rate{grid-area:rate;align-items:flex-end}
-  .item-title{font-size:14px}
+  .item-title{font-size:14px;margin-top:2px}
 }
 @media(max-width:430px){
   .brand-text{display:none}
@@ -550,12 +561,22 @@ html[data-theme="dark"] .toast svg{color:#28a745}
   .header-inner{gap:10px}
 }
 @media(max-width:520px){
-  .item{grid-template-columns:minmax(0,1fr);grid-template-areas:"main" "links" "rate"}
-  .col-rate .star{width:28px;height:34px}
-  .col-rate .star svg{width:17px;height:17px}
-  .col-rate{flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:8px}
-  .rate-meta{text-align:left}
-  .hero-stats{gap:22px 30px}
+  .item{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand rate" "main main" "links links"}
+  .col-rate .star{width:26px;height:32px}
+  .col-rate .star svg{width:16px;height:16px}
+  .rate-meta{text-align:right}
+  .hero-media{
+  position:relative;margin:clamp(26px,4vw,42px) 0 0;
+  border-radius:var(--radius-xl);overflow:hidden;
+  border:1px solid var(--hairline);background:#ded9d2;
+  box-shadow:var(--shadow-2);aspect-ratio:2.5/1;
+  animation:heroIn .9s var(--ease) both;animation-delay:.08s;
+}
+@keyframes heroIn{from{opacity:0;transform:translateY(14px) scale(.995)}to{opacity:1;transform:none}}
+.hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 52%}
+html[data-theme="dark"] .hero-media{background:#cfc9c2;border-color:rgba(255,255,255,.14)}
+@media(max-width:700px){.hero-media{aspect-ratio:16/9}}
+.hero-stats{gap:22px 30px}
   .toolbar{gap:8px}
   .toolbar-right{width:100%;margin-left:0;justify-content:space-between}
   .section-head{gap:12px}
@@ -618,8 +639,8 @@ html[data-theme="dark"] .toast svg{color:#28a745}
       <h1>Расходники.<br><span class="muted">Всё в одном месте.</span></h1>
       <p class="hero-lead">
         Оригинальные и альтернативные артикулы для планового обслуживания: масло, фильтры,
-        тормоза, подвеска, свечи, антифриз и щётки. С живыми ссылками на магазины,
-        отзывами из Oil-Club и оценками владельцев.
+        тормоза, подвеска, свечи, антифриз и щётки. Живые ссылки на магазины, разборы
+        Oil-Club и оценка каждой позиции по пятибалльной шкале.
       </p>
       <div class="hero-actions">
         <button class="btn btn-primary btn-lg" id="heroSearchBtn" type="button">
@@ -632,6 +653,10 @@ html[data-theme="dark"] .toast svg{color:#28a745}
           Предложить артикул
         </button>
       </div>
+
+      <figure class="hero-media">
+        <img src="assets/hero-parts.jpg" width="1600" height="873" alt="Расходники для планового обслуживания: свечи зажигания, тормозные колодки, масляный и воздушный фильтры, канистра моторного масла" loading="eager" decoding="async" fetchpriority="high">
+      </figure>
 
       <div class="hero-stats">
         <div>
@@ -839,7 +864,6 @@ html[data-theme="dark"] .toast svg{color:#28a745}
       groups: [{
         id: 'oil-0w20',
         title: '0W-20 с допуском VW 508 00 / 509 00',
-        meta: '11 масел',
         items: [
           {
             b: 'Volkswagen', a: 'G 052 577 M2', n: 'Volkswagen Group LongLife IV FE 0W-20', p: null,
@@ -904,7 +928,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
       desc: 'Масляный и воздушный фильтры двигателя, салонный фильтр, фильтр АКПП, а также пробка и кольцо сливной пробки.',
       groups: [
         {
-          id: 'oil-filter', title: 'Масляный фильтр двигателя', meta: '5 позиций',
+          id: 'oil-filter', title: 'Масляный фильтр двигателя',
           items: [
             { b: 'VAG', a: '04E115561L', n: 'Фильтр масляный двигателя' },
             { b: 'FAW-Volkswagen', a: 'L04E115561L', n: 'Фильтр масляный двигателя' },
@@ -936,7 +960,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
           ]
         },
         {
-          id: 'air-filter', title: 'Воздушный фильтр двигателя', meta: '8 позиций',
+          id: 'air-filter', title: 'Воздушный фильтр двигателя', meta: 'MANN · Mahle · Bosch · Hengst',
           items: [
             { b: 'VAG', a: '04E129620D', n: 'Фильтр. элемент возд. фильтра' },
             { b: 'FAW-Volkswagen', a: 'L04E129620D', n: 'Фильтр воздушный двигателя' },
@@ -1003,7 +1027,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
           oem: ['5QL698451A', 'L5QL698451A', 'L5QL698451C', '5QL615416', '5QL615415C', '3Q0698451K', '3Q0698451AA', '3Q0698451S', '8V0698451D', '8V0698451B', '8V0698451A', '8V0698451', '5Q0698451T', '5Q0698451Q', '5Q0698451P', '5Q0698451N', '5Q0698451C', '5Q0698451AG', '5Q0698451AE', '5Q0698451AD', '5Q0698451AB', '5Q0698451', '5G0698451', '3QF698451', '3Q0698451N', '3Q0698451M', '3Q0698451L', '3Q0698451J', '3Q0698451H', '3Q0698451F', '3Q0698451E', '3Q0698451D', '3Q0698451C', '3Q0698451B', '3Q0698451', '8V0698451H', 'JZW698451AA', '3Q0698451G', '5Q0698451AC', '5Q0698451AF', '5Q0698451AK', '5Q0698451H', '5Q0698451J', '5Q0698451R', '5Q0698451S', '8V0698451F', '5QL698451A', 'L3QD698451', 'L8V0698451', 'L3TD698451', 'L3TD698451A', 'L5QL698451A', 'L5QL698451C', '10208319']
         },
         {
-          id: 'disc-front', title: 'Передний тормозной диск', meta: '5 позиций',
+          id: 'disc-front', title: 'Передний тормозной диск',
           items: [
             { b: 'VAG', a: '5QL615301', n: 'Диск тормозной передний' },
             { b: 'FAW-Volkswagen', a: 'L5QL615301', n: 'Диск тормозной', note: 'В исходной таблице ссылка ведёт на страницу колодок NiBK, а не на диск — проверьте артикул у продавца.' },
@@ -1013,7 +1037,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
           ]
         },
         {
-          id: 'disc-rear', title: 'Задний тормозной диск', meta: '5 позиций',
+          id: 'disc-rear', title: 'Задний тормозной диск', meta: 'вентилируемый / цельный',
           items: [
             { b: 'FAW-Volkswagen', a: 'L5QD615601A', n: 'Диск тормозной' },
             { b: 'VAG', a: '1K0615601AA', n: 'Диск тормозной' },
@@ -1032,11 +1056,11 @@ html[data-theme="dark"] .toast svg{color:#28a745}
       desc: 'Передняя подвеска: амортизатор и сайлентблоки рычагов. Часть разделов в исходной таблице не заполнена — их можно дополнить своими артикулами.',
       groups: [
         {
-          id: 'front-shock', title: 'Передний амортизатор', meta: '1 позиция',
+          id: 'front-shock', title: 'Передний амортизатор',
           items: [{ b: 'VAG', a: '5QL413031D', n: 'Газонаполненный амортизатор передний (стоковый)' }]
         },
         {
-          id: 'arm-bush', title: 'Сайлентблоки передних рычагов', meta: '2 позиции',
+          id: 'arm-bush', title: 'Сайлентблоки передних рычагов',
           items: [
             { b: 'VAG', a: '5QL407183', n: 'Сайлентблок' },
             { b: 'VAG', a: '8S0407183B', n: 'Сайлентблок переднего нижнего рычага, задний' }
@@ -1055,7 +1079,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
       desc: 'Свечи зажигания, ремень ГРМ, натяжной и обводной ролики. Артикулы VAG, FAW-Volkswagen и профильных брендов.',
       groups: [
         {
-          id: 'spark-plugs', title: 'Свечи зажигания', meta: '5 позиций',
+          id: 'spark-plugs', title: 'Свечи зажигания', meta: 'никель / платина / иридий',
           items: [
             { b: 'FAW-Volkswagen', a: 'L04E905612C', n: 'Свеча зажигания (наименование не указано в исходнике)' },
             { b: 'NGK', a: '04E905602', n: 'Свеча зажигания (медно-никелевая, заводская)' },
@@ -1073,7 +1097,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
           ]
         },
         {
-          id: 'tensioner', title: 'Натяжной ролик ремня ГРМ', meta: '3 позиции',
+          id: 'tensioner', title: 'Натяжной ролик ремня ГРМ',
           items: [
             { b: 'VAG', a: '04E109479C', n: 'Натяжной ролик' },
             { b: 'FAW-Volkswagen', a: 'L04E109479C', n: 'Натяжной ролик' },
@@ -1081,7 +1105,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
           ]
         },
         {
-          id: 'idler', title: 'Обводной и направляющий ролики', meta: 'в исходнике раздел назывался «Ролик натяжной»',
+          id: 'idler', title: 'Обводной и направляющий ролики', meta: 'обводной и направляющий',
           items: [
             { b: 'VAG', a: '04E109244E', n: 'Ролик обводной' },
             { b: 'FAW-Volkswagen', a: 'L04E109244E', n: 'Направляющий ролик' },
@@ -1097,7 +1121,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
       short: 'Антифриз',
       desc: 'Спецификация VW TL 774 L. Готовые растворы и концентраты: VAG, FELIX, Liqui Moly, HEPU.',
       groups: [{
-        id: 'coolant-all', title: 'Антифризы', meta: '6 позиций',
+        id: 'coolant-all', title: 'Антифризы', meta: 'готовый и концентрат · VW TL 774 L',
         items: [
           { b: 'VAG', a: 'G12E050A2', n: 'Антифриз G12evo (готовый, фиолетовый)', l: { oz: 'https://ozon.ru/t/Mn7Ptmq' } },
           { b: 'FELIX', a: '430206334', n: 'Антифриз FELIX EVO G12++, фиолетовый, 1 кг', l: { site: 'https://antifreezefelix.ru/antifreeze/felix-evo', oz: 'https://ozon.ru/t/8Mj4Iq8', wb: 'https://www.wildberries.ru/catalog/110522178/detail.aspx?targetUrl=SN' } },
@@ -1322,7 +1346,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
         var a = ratingOf(x.key), b = ratingOf(y.key);
         if (b.avg !== a.avg) return b.avg - a.avg;
         if (b.count !== a.count) return b.count - a.count;
-        return x.n.localeCompare(y.n, 'ru');
+        return 0;
       });
     } else if (state.sort === 'price-asc') {
       arr.sort(function (x, y) {
@@ -1429,7 +1453,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
     return '<div class="item" data-key="' + esc(it.key) + '">' +
       '<div class="col-brand"><span class="brand-name' + (isOemBrand(it.b) ? ' is-oem' : '') + '">' + highlight(it.b) + '</span></div>' +
       '<div class="col-main">' +
-        '<div class="brand-inline">' + highlight(it.b) + '</div>' +
+
         '<div class="item-title"><span class="name">' + highlight(it.n) + '</span>' + badges + '</div>' +
         '<div class="item-sub">' + art + price + noteBtn + actions + '</div>' +
       '</div>' +
@@ -1509,7 +1533,9 @@ html[data-theme="dark"] .toast svg{color:#28a745}
     if (totalShown === 0) {
       $('#noResultsText').textContent = state.onlyMine
         ? 'Вы ещё не добавляли позиций. Нажмите «Добавить позицию» — запись сохранится в этом браузере.'
-        : 'По запросу «' + state.query + '» ничего не найдено. Проверьте артикул или добавьте позицию в справочник.';
+        : (state.onlyRated
+          ? 'Вы пока не оценили ни одной позиции. Нажмите на звёзды в строке — оценка сохранится автоматически.'
+          : 'По запросу «' + state.query + '» ничего не найдено. Проверьте артикул или добавьте позицию в справочник.');
     }
     var word = plural(totalShown, 'позиция', 'позиции', 'позиций');
     $('#resultCount').innerHTML = 'Показано <b>' + totalShown + '</b> ' + word +
@@ -1548,7 +1574,7 @@ html[data-theme="dark"] .toast svg{color:#28a745}
   function cardHtml(cat, grp, list) {
     var out = '<div class="card">' +
       '<div class="card-head">' +
-        '<span class="card-title">' + esc(grp.title) + '</span>' +
+        '<h3 class="card-title">' + esc(grp.title) + '</h3>' +
         (grp.meta ? '<span class="card-meta">' + esc(grp.meta) + '</span>' : '') +
         '<span class="spacer"></span>' +
         (list.length ? '<span class="card-meta">' + list.length + ' из ' + totalInGroup(cat.id, grp.id) + '</span>' : '') +
@@ -1963,6 +1989,10 @@ html[data-theme="dark"] .toast svg{color:#28a745}
   });
 
   var isMac = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+  (function setKbdHint() {
+    var k = document.querySelector('.hero-kbd kbd');
+    if (k && !isMac) k.textContent = 'Ctrl';
+  })();
   document.addEventListener('keydown', function (e) {
     var tag = (document.activeElement && document.activeElement.tagName) || '';
     var typing = /INPUT|TEXTAREA|SELECT/.test(tag);
